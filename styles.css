@@ -52,6 +52,16 @@ body.is-typing-intro .scroll-card {
   pointer-events: none;
 }
 
+.ascii-ripple-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -3;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .scanlines {
   position: fixed;
   inset: 0;
@@ -642,6 +652,7 @@ h2 {
   }
 
   .matrix-canvas,
+  .ascii-ripple-canvas,
   .custom-cursor {
     display: none;
   }

@@ -1,6 +1,7 @@
 const repoGrid = document.getElementById("repo-grid");
 const githubUser = "newbbd";
 const reposEndpoint = `https://api.github.com/users/${githubUser}/repos`;
+const fallbackReposEndpoint = `https://ungh.cc/users/${githubUser}/repos`;
 const userEndpoint = `https://api.github.com/users/${githubUser}`;
 const repoStat = document.getElementById("stat-repos");
 const followerStat = document.getElementById("stat-followers");
@@ -209,36 +210,89 @@ function renderRepos(repos) {
   }
 }
 
+function setRepoAndStarStatsOnly(repos) {
+  const totalStars = repos.reduce((sum, repo) => sum + repo.stargazers_count, 0);
+  if (repoStat) {
+    repoStat.textContent = formatNumber(repos.length);
+  }
+  if (starStat) {
+    starStat.textContent = formatNumber(totalStars);
+  }
+  if (followerStat && (!followerStat.textContent || followerStat.textContent === "--")) {
+    followerStat.textContent = "--";
+  }
+}
+
+function normalizeFallbackRepo(repo) {
+  const repoPath = repo.repo || `${githubUser}/${repo.name}`;
+  return {
+    name: repo.name,
+    description: repo.description,
+    language: null,
+    stargazers_count: Number.isFinite(repo.stars) ? repo.stars : 0,
+    updated_at: repo.updatedAt || repo.pushedAt || repo.createdAt || new Date().toISOString(),
+    pushed_at: repo.pushedAt || repo.updatedAt || repo.createdAt || new Date().toISOString(),
+    html_url: `https://github.com/${repoPath}`,
+  };
+}
+
 async function loadRepos() {
   try {
     let page = 1;
     const perPage = 100;
     const allRepos = [];
+    let usedFallback = false;
 
-    while (true) {
-      const url = `${reposEndpoint}?per_page=${perPage}&page=${page}&type=owner&sort=updated`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error("Unable to load repositories.");
+    try {
+      while (true) {
+        const url = `${reposEndpoint}?per_page=${perPage}&page=${page}&type=owner&sort=updated`;
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`GitHub API request failed with ${response.status}`);
+        }
+
+        const repos = await response.json();
+        allRepos.push(...repos);
+
+        if (repos.length < perPage) {
+          break;
+        }
+
+        page += 1;
+      }
+    } catch (primaryError) {
+      const fallbackResponse = await fetch(fallbackReposEndpoint, { cache: "no-store" });
+      if (!fallbackResponse.ok) {
+        throw primaryError;
       }
 
-      const repos = await response.json();
-      allRepos.push(...repos);
+      const fallbackPayload = await fallbackResponse.json();
+      const fallbackRepos = Array.isArray(fallbackPayload?.repos)
+        ? fallbackPayload.repos.map(normalizeFallbackRepo)
+        : [];
+      allRepos.push(...fallbackRepos);
+      usedFallback = true;
+    }
 
-      if (repos.length < perPage) {
-        break;
+    if (!allRepos.length) {
+      renderState("no repositories found yet.");
+      return;
+    }
+
+    try {
+      const profileResponse = await fetch(userEndpoint, { cache: "no-store" });
+      if (!profileResponse.ok) {
+        throw new Error(`Profile request failed with ${profileResponse.status}`);
       }
-
-      page += 1;
+      const profile = await profileResponse.json();
+      setStats(profile, allRepos);
+    } catch (profileError) {
+      setRepoAndStarStatsOnly(allRepos);
+      if (!usedFallback && followerStat && followerStat.textContent === "--") {
+        followerStat.textContent = "--";
+      }
     }
 
-    const profileResponse = await fetch(userEndpoint);
-    if (!profileResponse.ok) {
-      throw new Error("Unable to load profile.");
-    }
-
-    const profile = await profileResponse.json();
-    setStats(profile, allRepos);
     renderRepos(allRepos);
   } catch (error) {
     renderState("could not load repos right now. refresh and try again.");
@@ -647,6 +701,208 @@ function setMatrixRain() {
   applyMotionPreference();
 }
 
+function setAsciiDiamondRipples() {
+  const canvas = document.getElementById("ascii-ripple-canvas");
+  if (!canvas) {
+    return;
+  }
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return;
+  }
+
+  const chars = ["<", ">", "/", "\\", "+", "*", "x", ":"];
+  const blockedTargetsSelector = [
+    ".stat",
+    ".social-card",
+    ".repo-card",
+    ".photo-wrap",
+    ".profile-trigger",
+    ".intel-panel",
+    "a",
+    "button",
+    "input",
+    "textarea",
+    "select",
+    "label",
+  ].join(", ");
+  const ripples = [];
+  let width = 0;
+  let height = 0;
+  let cellSize = 15;
+  let animationFrame = 0;
+  let running = false;
+  let lastFrameTime = 0;
+
+  function configureCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = window.innerWidth;
+    height = window.innerHeight;
+    cellSize = width < 700 ? 13 : 15;
+
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.font = `${cellSize}px "JetBrains Mono", monospace`;
+  }
+
+  function isBackgroundClick(target) {
+    if (!(target instanceof Element)) {
+      return true;
+    }
+
+    if (target.closest(blockedTargetsSelector)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function plot(x, y, char, alpha) {
+    if (alpha <= 0) {
+      return;
+    }
+
+    const snappedX = Math.round(x / cellSize) * cellSize;
+    const snappedY = Math.round(y / cellSize) * cellSize;
+
+    context.fillStyle = `rgba(126, 255, 176, ${alpha.toFixed(3)})`;
+    context.fillText(char, snappedX, snappedY);
+  }
+
+  function drawDiamondRing(centerX, centerY, radius, ageRatio) {
+    if (radius < 1) {
+      return;
+    }
+
+    const fade = Math.max(0, 1 - ageRatio);
+    for (let dx = -radius; dx <= radius; dx += 1) {
+      const dy = radius - Math.abs(dx);
+      const edgeStrength = 1 - Math.abs(dx) / radius;
+      const alpha = fade * (0.13 + edgeStrength * 0.34);
+      const charIndex = Math.abs(dx + dy + radius) % chars.length;
+      const mirroredCharIndex = Math.abs(dx - dy + radius) % chars.length;
+
+      plot(centerX + dx * cellSize, centerY + dy * cellSize, chars[charIndex], alpha);
+      if (dy !== 0) {
+        plot(centerX + dx * cellSize, centerY - dy * cellSize, chars[mirroredCharIndex], alpha);
+      }
+    }
+  }
+
+  function drawFrame(timestamp) {
+    if (!running) {
+      return;
+    }
+
+    const delta = Math.min(34, Math.max(8, timestamp - lastFrameTime || 16));
+    lastFrameTime = timestamp;
+    context.clearRect(0, 0, width, height);
+
+    for (let index = ripples.length - 1; index >= 0; index -= 1) {
+      const ripple = ripples[index];
+      ripple.age += delta;
+
+      if (ripple.age >= ripple.maxAge) {
+        ripples.splice(index, 1);
+        continue;
+      }
+
+      const ageRatio = ripple.age / ripple.maxAge;
+      const ringRadius = Math.max(1, Math.floor((ripple.maxRadius * ageRatio) / cellSize));
+      drawDiamondRing(ripple.x, ripple.y, ringRadius, ageRatio);
+      drawDiamondRing(ripple.x, ripple.y, Math.max(1, ringRadius - 1), Math.min(1, ageRatio + 0.08));
+    }
+
+    if (!ripples.length) {
+      running = false;
+      return;
+    }
+
+    animationFrame = window.requestAnimationFrame(drawFrame);
+  }
+
+  function startAnimation() {
+    if (running || reducedMotionQuery.matches) {
+      return;
+    }
+
+    running = true;
+    lastFrameTime = 0;
+    animationFrame = window.requestAnimationFrame(drawFrame);
+  }
+
+  function stopAnimation() {
+    running = false;
+    window.cancelAnimationFrame(animationFrame);
+    animationFrame = 0;
+    context.clearRect(0, 0, width, height);
+  }
+
+  function queueRipple(x, y) {
+    const diagonal = Math.hypot(width, height);
+    ripples.push({
+      x,
+      y,
+      age: 0,
+      maxAge: 840,
+      maxRadius: diagonal * 0.34,
+    });
+    startAnimation();
+  }
+
+  function applyMotionPreference() {
+    if (reducedMotionQuery.matches) {
+      canvas.style.opacity = "0";
+      stopAnimation();
+      return;
+    }
+
+    canvas.style.opacity = "0.5";
+    configureCanvas();
+  }
+
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      if (!isBackgroundClick(event.target)) {
+        return;
+      }
+
+      if (intelModal?.classList.contains("is-open")) {
+        return;
+      }
+
+      queueRipple(event.clientX, event.clientY);
+    },
+    { passive: true }
+  );
+
+  window.addEventListener("resize", configureCanvas);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      stopAnimation();
+    }
+  });
+  if (typeof reducedMotionQuery.addEventListener === "function") {
+    reducedMotionQuery.addEventListener("change", applyMotionPreference);
+  } else if (typeof reducedMotionQuery.addListener === "function") {
+    reducedMotionQuery.addListener(applyMotionPreference);
+  }
+
+  configureCanvas();
+  applyMotionPreference();
+}
+
 function safeValue(value, fallback = "unavailable") {
   if (value === undefined || value === null || value === "") {
     return fallback;
@@ -987,6 +1243,7 @@ async function initializePage() {
   setAnimatedTitle();
   setCustomCursor();
   setMatrixRain();
+  setAsciiDiamondRipples();
   setProfileEasterEgg();
 
   await Promise.allSettled([loadDiscordStatus(), loadRepos()]);
