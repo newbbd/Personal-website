@@ -376,28 +376,64 @@ function setCustomCursor() {
     return;
   }
 
-  const interactiveElements = document.querySelectorAll("a, button, [role='button']");
-  const glyphCharset = ["0", "1", "<", ">", "[", "]", "{", "}"];
+  const interactiveSelector = "a, button, [role='button'], .repo-card, .social-card, .stat";
 
   let cursorVisible = false;
-  let mouseX = 0;
-  let mouseY = 0;
-  let lastGlyphSpawn = 0;
-
-  function spawnGlyph(x, y) {
-    const glyph = document.createElement("span");
-    glyph.className = "glyph-particle";
-    glyph.textContent = glyphCharset[Math.floor(Math.random() * glyphCharset.length)];
-    glyph.style.left = `${x + (Math.random() - 0.5) * 6}px`;
-    glyph.style.top = `${y + (Math.random() - 0.5) * 6}px`;
-    document.body.appendChild(glyph);
-    glyph.addEventListener("animationend", () => {
-      glyph.remove();
-    });
-  }
+  let pointerX = window.innerWidth * 0.5;
+  let pointerY = window.innerHeight * 0.5;
+  let renderX = pointerX;
+  let renderY = pointerY;
+  let previousX = renderX;
+  let previousY = renderY;
+  let velocityX = 0;
+  let velocityY = 0;
+  let trailBudget = 0;
+  let lastTick = performance.now();
+  let hoverTarget = null;
 
   function setHoverState(isHovering) {
     cursor.classList.toggle("is-hovering", isHovering);
+  }
+
+  function getMagnetStrength(element) {
+    if (!element) {
+      return 0;
+    }
+
+    if (element.matches(".repo-card, .social-card")) {
+      return 0.2;
+    }
+
+    if (element.matches(".stat")) {
+      return 0.16;
+    }
+
+    return 0.12;
+  }
+
+  function spawnSpark(x, y, vx, vy, speed) {
+    const spark = document.createElement("span");
+    spark.className = "cursor-spark";
+
+    const baseAngle = Math.atan2(vy || Math.random() - 0.5, vx || Math.random() - 0.5);
+    const angle = baseAngle + (Math.random() - 0.5) * 1.15;
+    const distance = 14 + Math.random() * 30 + Math.min(speed, 2.4) * 8;
+    const driftX = Math.cos(angle) * distance;
+    const driftY = Math.sin(angle) * distance;
+    const size = 1.6 + Math.random() * 2.6;
+    const durationMs = 360 + Math.random() * 360;
+    const opacity = 0.5 + Math.random() * 0.4;
+
+    spark.style.left = `${x}px`;
+    spark.style.top = `${y}px`;
+    spark.style.setProperty("--spark-size", `${size}px`);
+    spark.style.setProperty("--spark-dx", `${driftX}px`);
+    spark.style.setProperty("--spark-dy", `${driftY}px`);
+    spark.style.setProperty("--spark-duration", `${durationMs}ms`);
+    spark.style.setProperty("--spark-opacity", opacity.toFixed(2));
+
+    document.body.appendChild(spark);
+    spark.addEventListener("animationend", () => spark.remove());
   }
 
   function showCursor() {
@@ -408,17 +444,69 @@ function setCustomCursor() {
   function hideCursor() {
     cursorVisible = false;
     cursor.style.opacity = "0";
+    setHoverState(false);
+    hoverTarget = null;
+  }
+
+  function animate(now) {
+    const delta = Math.min(34, Math.max(8, now - lastTick));
+    lastTick = now;
+
+    let targetX = pointerX;
+    let targetY = pointerY;
+
+    if (hoverTarget) {
+      const rect = hoverTarget.getBoundingClientRect();
+      const centerX = rect.left + rect.width * 0.5;
+      const centerY = rect.top + rect.height * 0.5;
+      const toCenterX = centerX - pointerX;
+      const toCenterY = centerY - pointerY;
+      const distance = Math.hypot(toCenterX, toCenterY);
+      const influenceRadius = Math.max(58, Math.min(rect.width, rect.height) * 0.65);
+      const influence = Math.max(0, 1 - distance / influenceRadius);
+      const pullStrength = getMagnetStrength(hoverTarget) * influence;
+
+      targetX += toCenterX * pullStrength;
+      targetY += toCenterY * pullStrength;
+    }
+
+    const easing = hoverTarget ? 0.24 : 0.18;
+    renderX += (targetX - renderX) * easing;
+    renderY += (targetY - renderY) * easing;
+
+    velocityX = renderX - previousX;
+    velocityY = renderY - previousY;
+    previousX = renderX;
+    previousY = renderY;
+
+    const speed = Math.hypot(velocityX, velocityY);
+    const speedRatio = Math.min(speed / 15, 1);
+    const angleDeg = Math.atan2(velocityY, velocityX) * (180 / Math.PI);
+    const baseScale = hoverTarget ? 1.18 : 1;
+    const stretch = 1 + speedRatio * 0.68;
+    const squeeze = 1 - speedRatio * 0.29;
+
+    cursor.style.transform = `translate3d(${renderX}px, ${renderY}px, 0) translate(-50%, -50%) rotate(${angleDeg}deg) scale(${(
+      baseScale * stretch
+    ).toFixed(3)}, ${(baseScale * squeeze).toFixed(3)})`;
+
+    trailBudget += speed * (delta / 16);
+    while (trailBudget > 7) {
+      spawnSpark(renderX, renderY, -velocityX, -velocityY, speedRatio);
+      trailBudget -= 7;
+    }
+
+    window.requestAnimationFrame(animate);
   }
 
   window.addEventListener("pointermove", (event) => {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-    cursor.style.left = `${mouseX}px`;
-    cursor.style.top = `${mouseY}px`;
-    const now = performance.now();
-    if (now - lastGlyphSpawn > 46) {
-      spawnGlyph(mouseX, mouseY);
-      lastGlyphSpawn = now;
+    pointerX = event.clientX;
+    pointerY = event.clientY;
+
+    const nextTarget = event.target instanceof Element ? event.target.closest(interactiveSelector) : null;
+    if (nextTarget !== hoverTarget) {
+      hoverTarget = nextTarget;
+      setHoverState(Boolean(hoverTarget));
     }
 
     if (!cursorVisible) {
@@ -429,12 +517,7 @@ function setCustomCursor() {
   window.addEventListener("pointerleave", hideCursor);
   window.addEventListener("blur", hideCursor);
 
-  interactiveElements.forEach((element) => {
-    element.addEventListener("mouseenter", () => {
-      setHoverState(true);
-    });
-    element.addEventListener("mouseleave", () => setHoverState(false));
-  });
+  window.requestAnimationFrame(animate);
 }
 
 function setMatrixRain() {
