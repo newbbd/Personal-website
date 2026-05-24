@@ -22,6 +22,7 @@ let cardObserver = null;
 let profileClickCount = 0;
 let profileClickResetTimer = 0;
 let hasCompletedTypingIntro = false;
+let matrixCollisionMasks = [];
 
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -632,18 +633,33 @@ function setMatrixRain() {
     context.fillStyle = "rgba(1, 10, 4, 0.2)";
     context.fillRect(0, 0, width, height);
 
+    function isMaskedByRipple(x, y) {
+      for (const mask of matrixCollisionMasks) {
+        const distance = Math.abs(x - mask.x) + Math.abs(y - mask.y);
+        if (distance >= mask.innerRadius && distance <= mask.outerRadius) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     columns.forEach((column, index) => {
       const x = index * fontSize;
       const y = column.y * fontSize;
       const char = charset[Math.floor(Math.random() * charset.length)];
 
-      if (Math.random() < column.brightChance) {
+      const shouldMaskMain = isMaskedByRipple(x, y);
+      const shouldMaskLead = isMaskedByRipple(x, y - fontSize);
+
+      if (!shouldMaskLead && Math.random() < column.brightChance) {
         context.fillStyle = "rgba(231, 255, 239, 0.92)";
         context.fillText(char, x, y - fontSize);
       }
 
-      context.fillStyle = `rgba(124, 255, 171, ${0.25 + Math.random() * 0.5})`;
-      context.fillText(char, x, y);
+      if (!shouldMaskMain) {
+        context.fillStyle = `rgba(124, 255, 171, ${0.25 + Math.random() * 0.5})`;
+        context.fillText(char, x, y);
+      }
 
       column.y += column.speed;
 
@@ -775,7 +791,7 @@ function setAsciiDiamondRipples() {
     context.fillText(char, snappedX, snappedY);
   }
 
-  function drawDiamondRing(centerX, centerY, radius, ageRatio) {
+  function drawDiamondRing(centerX, centerY, radius, ageRatio, intensityScale = 1, charPhase = 0) {
     if (radius < 1) {
       return;
     }
@@ -784,9 +800,9 @@ function setAsciiDiamondRipples() {
     for (let dx = -radius; dx <= radius; dx += 1) {
       const dy = radius - Math.abs(dx);
       const edgeStrength = 1 - Math.abs(dx) / radius;
-      const alpha = fade * (0.13 + edgeStrength * 0.34);
-      const charIndex = Math.abs(dx + dy + radius) % chars.length;
-      const mirroredCharIndex = Math.abs(dx - dy + radius) % chars.length;
+      const alpha = Math.min(0.95, fade * (0.2 + edgeStrength * 0.58) * intensityScale);
+      const charIndex = Math.abs(dx + dy + radius + charPhase) % chars.length;
+      const mirroredCharIndex = Math.abs(dx - dy + radius + charPhase) % chars.length;
 
       plot(centerX + dx * cellSize, centerY + dy * cellSize, chars[charIndex], alpha);
       if (dy !== 0) {
@@ -803,6 +819,7 @@ function setAsciiDiamondRipples() {
     const delta = Math.min(34, Math.max(8, timestamp - lastFrameTime || 16));
     lastFrameTime = timestamp;
     context.clearRect(0, 0, width, height);
+    matrixCollisionMasks = [];
 
     for (let index = ripples.length - 1; index >= 0; index -= 1) {
       const ripple = ripples[index];
@@ -814,13 +831,32 @@ function setAsciiDiamondRipples() {
       }
 
       const ageRatio = ripple.age / ripple.maxAge;
-      const ringRadius = Math.max(1, Math.floor((ripple.maxRadius * ageRatio) / cellSize));
-      drawDiamondRing(ripple.x, ripple.y, ringRadius, ageRatio);
-      drawDiamondRing(ripple.x, ripple.y, Math.max(1, ringRadius - 1), Math.min(1, ageRatio + 0.08));
+      const expandedRatio = Math.pow(ageRatio, 1.22);
+      const ringRadius = Math.max(1, Math.floor((ripple.maxRadius * expandedRatio) / cellSize));
+      const ringRadiusPx = ringRadius * cellSize;
+      const ringThicknessPx = Math.max(cellSize * 2.4, ringRadiusPx * 0.08);
+      matrixCollisionMasks.push({
+        x: ripple.x,
+        y: ripple.y,
+        innerRadius: Math.max(0, ringRadiusPx - ringThicknessPx),
+        outerRadius: ringRadiusPx + ringThicknessPx,
+      });
+      drawDiamondRing(ripple.x, ripple.y, ringRadius, ageRatio, 1.05, 0);
+      drawDiamondRing(ripple.x, ripple.y, Math.max(1, ringRadius - 1), Math.min(1, ageRatio + 0.06), 0.82, 2);
+      drawDiamondRing(ripple.x, ripple.y, Math.max(1, ringRadius - 3), Math.min(1, ageRatio + 0.14), 0.58, 5);
+      drawDiamondRing(
+        ripple.x,
+        ripple.y,
+        Math.max(1, Math.floor(ringRadius * 0.6)),
+        Math.min(1, ageRatio + 0.28),
+        0.42,
+        7
+      );
     }
 
     if (!ripples.length) {
       running = false;
+      matrixCollisionMasks = [];
       return;
     }
 
@@ -842,6 +878,7 @@ function setAsciiDiamondRipples() {
     window.cancelAnimationFrame(animationFrame);
     animationFrame = 0;
     context.clearRect(0, 0, width, height);
+    matrixCollisionMasks = [];
   }
 
   function queueRipple(x, y) {
@@ -850,8 +887,8 @@ function setAsciiDiamondRipples() {
       x,
       y,
       age: 0,
-      maxAge: 840,
-      maxRadius: diagonal * 0.34,
+      maxAge: 1700,
+      maxRadius: diagonal * 0.42,
     });
     startAnimation();
   }
@@ -863,7 +900,7 @@ function setAsciiDiamondRipples() {
       return;
     }
 
-    canvas.style.opacity = "0.5";
+    canvas.style.opacity = "0.72";
     configureCanvas();
   }
 
