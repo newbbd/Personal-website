@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shaan | Builder Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/jpeg" href="pfp.jpg" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <canvas id="matrix-canvas" class="matrix-canvas" aria-hidden="true"></canvas>
+    <div class="scanlines" aria-hidden="true"></div>
+    <div class="crt-vignette" aria-hidden="true"></div>
+    <div id="custom-cursor" class="custom-cursor" aria-hidden="true"></div>
+
+    <main class="page">
+      <header class="topbar reveal">
+        <p class="brand">Shaan</p>
+      </header>
+
+      <section class="hero">
+        <div class="photo-wrap reveal">
+          <button
+            id="profile-trigger"
+            class="profile-trigger"
+            type="button"
+            aria-label="Activate hidden profile easter egg"
+          >
+            <img src="pfp.jpg" alt="Shaan profile picture" class="photo" />
+          </button>
+        </div>
+
+        <div class="hero-copy reveal">
+          <h1>Shaan</h1>
+        </div>
+      </section>
+
+      <section class="stats reveal">
+        <div class="stat">
+          <p id="stat-repos" class="stat-value">--</p>
+          <p class="stat-label">Repos</p>
+        </div>
+        <div class="stat">
+          <p id="stat-followers" class="stat-value">--</p>
+          <p class="stat-label">Followers</p>
+        </div>
+        <div class="stat">
+          <p id="stat-stars" class="stat-value">--</p>
+          <p class="stat-label">Total Stars</p>
+        </div>
+      </section>
+
+      <section id="links" class="socials reveal">
+        <h2>Find Me Online</h2>
+        <div class="social-grid">
+          <a
+            class="social-card"
+            href="https://github.com/newbbd"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img
+              src="https://cdn.simpleicons.org/github/ffffff"
+              alt="GitHub logo"
+              class="social-logo"
+            />
+            <div>
+              <p class="social-name">GitHub</p>
+              <p class="social-meta">@newbbd</p>
+            </div>
+          </a>
+
+          <a
+            class="social-card"
+            href="https://www.roblox.com/users/4607785415/profile"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img
+              src="https://cdn.simpleicons.org/roblox/ffffff"
+              alt="Roblox logo"
+              class="social-logo"
+            />
+            <div>
+              <p class="social-name">Roblox</p>
+              <p class="social-meta">Profile</p>
+            </div>
+          </a>
+
+          <a
+            class="social-card"
+            href="https://steamcommunity.com/profiles/76561198763811803/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img
+              src="https://cdn.simpleicons.org/steam/ffffff"
+              alt="Steam logo"
+              class="social-logo"
+            />
+            <div>
+              <p class="social-name">Steam</p>
+              <p class="social-meta">super.ark81</p>
+            </div>
+          </a>
+
+          <a
+            class="social-card"
+            href="https://www.xbox.com/en-US/play/user/brreezii"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/f/f9/Xbox_one_logo.svg"
+              alt="Xbox logo"
+              class="social-logo xbox-logo"
+            />
+            <div>
+              <p class="social-name">Xbox</p>
+              <p class="social-meta">brreezii</p>
+            </div>
+          </a>
+
+          <div class="social-card discord-card" aria-live="polite">
+            <img
+              src="https://cdn.simpleicons.org/discord/ffffff"
+              alt="Discord logo"
+              class="social-logo"
+            />
+            <div>
+              <p class="social-name">Discord</p>
+              <p class="social-meta">@sh44nz</p>
+              <p class="discord-live">
+                <span id="discord-indicator" class="status-dot"></span>
+                <span id="discord-status">Loading status...</span>
+              </p>
+              <p id="discord-activity" class="discord-activity">Checking Lanyard...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="repos" class="repos reveal">
+        <h2>Projects</h2>
+        <div id="repo-grid" class="repo-grid" aria-live="polite">
+          <p class="repo-state">Loading repositories...</p>
+        </div>
+      </section>
+
+    </main>
+
+    <div id="visitor-intel" class="intel-modal" aria-hidden="true">
+      <div class="intel-panel">
+        <div class="intel-header">
+          <p class="intel-title">Visitor Intel</p>
+          <button id="intel-close" class="intel-close" type="button" aria-label="Close visitor intel">
+            close
+          </button>
+        </div>
+        <pre id="intel-output" class="intel-output">Collecting intel...</pre>
+      </div>
+    </div>
+
+    <script src="script.js" defer></script>
+  </body>
+</html>
