@@ -20,6 +20,7 @@ let scrollDirection = "down";
 let cardObserver = null;
 let profileClickCount = 0;
 let profileClickResetTimer = 0;
+let hasCompletedTypingIntro = false;
 
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -203,7 +204,9 @@ function renderRepos(repos) {
     .join("");
 
   repoGrid.innerHTML = cards;
-  setCardScrollAnimations();
+  if (hasCompletedTypingIntro) {
+    setCardScrollAnimations();
+  }
 }
 
 async function loadRepos() {
@@ -912,13 +915,90 @@ function setProfileEasterEgg() {
   });
 }
 
-trackScrollDirection();
-setAnimatedTitle();
-setCustomCursor();
-setMatrixRain();
-setRevealAnimations();
-setCardScrollAnimations();
-setProfileEasterEgg();
-loadDiscordStatus();
-setInterval(loadDiscordStatus, 30000);
-loadRepos();
+function getTypingTargets() {
+  const selector = [
+    ".brand",
+    "h1",
+    ".stat-value",
+    ".stat-label",
+    "#links h2",
+    ".social-name",
+    ".social-meta",
+    "#discord-status",
+    "#discord-activity",
+    "#repos h2",
+    ".repo-card h3",
+    ".repo-desc",
+    ".repo-meta span",
+    ".repo-state",
+  ].join(", ");
+
+  return Array.from(document.querySelectorAll(selector)).filter((element) => {
+    const text = element.textContent?.trim() || "";
+    return text.length > 0;
+  });
+}
+
+function sleep(delayMs) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
+}
+
+async function typeElementText(element, fullText) {
+  element.classList.add("typing-active");
+  element.textContent = "";
+
+  for (const char of fullText) {
+    element.textContent += char;
+    await sleep(15 + Math.floor(Math.random() * 22));
+  }
+
+  await sleep(70);
+  element.classList.remove("typing-active");
+}
+
+async function runTypingIntro() {
+  if (reducedMotionQuery.matches) {
+    hasCompletedTypingIntro = true;
+    return;
+  }
+
+  const targets = getTypingTargets();
+  if (!targets.length) {
+    hasCompletedTypingIntro = true;
+    return;
+  }
+
+  document.body.classList.add("is-typing-intro");
+  await Promise.all(
+    targets.map((element) => {
+      const text = element.textContent || "";
+      return typeElementText(element, text);
+    })
+  );
+
+  document.body.classList.remove("is-typing-intro");
+  hasCompletedTypingIntro = true;
+}
+
+async function initializePage() {
+  trackScrollDirection();
+  setAnimatedTitle();
+  setCustomCursor();
+  setMatrixRain();
+  setProfileEasterEgg();
+
+  await Promise.allSettled([loadDiscordStatus(), loadRepos()]);
+  await runTypingIntro();
+
+  document.querySelectorAll(".reveal").forEach((item) => {
+    item.classList.add("is-visible");
+  });
+  document.querySelectorAll(".stat, .social-card, .repo-card").forEach((card) => {
+    card.classList.add("in-view");
+  });
+  window.setInterval(loadDiscordStatus, 30000);
+}
+
+initializePage();
