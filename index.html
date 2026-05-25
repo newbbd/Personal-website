@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <canvas id="matrix-canvas" class="matrix-canvas" aria-hidden="true"></canvas>
+    <canvas id="ambient-canvas" class="ambient-canvas" aria-hidden="true"></canvas>
     <div class="scanlines" aria-hidden="true"></div>
     <div class="crt-vignette" aria-hidden="true"></div>
 
@@ -43,14 +43,7 @@
         <aside class="left-column" data-panel-id="profile">
           <section class="hero">
             <div class="photo-wrap reveal">
-              <button
-                id="profile-trigger"
-                class="profile-trigger"
-                type="button"
-                aria-label="Activate hidden profile easter egg"
-              >
-                <img src="pfp.jpg" alt="Shaan profile picture" class="photo" />
-              </button>
+              <img src="pfp.jpg" alt="Shaan profile picture" class="photo" />
             </div>
 
             <div class="hero-copy reveal">
@@ -183,18 +176,6 @@
         </section>
       </div>
     </main>
-
-    <div id="visitor-intel" class="intel-modal" aria-hidden="true">
-      <div class="intel-panel">
-        <div class="intel-header">
-          <p class="intel-title">Visitor Intel</p>
-          <button id="intel-close" class="intel-close" type="button" aria-label="Close visitor intel">
-            close
-          </button>
-        </div>
-        <pre id="intel-output" class="intel-output">Collecting intel...</pre>
-      </div>
-    </div>
 
     <script src="script.js" defer></script>
   </body>

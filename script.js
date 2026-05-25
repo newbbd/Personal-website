@@ -12,10 +12,6 @@ const discordIndicator = document.getElementById("discord-indicator");
 const repoPrevButton = document.getElementById("repo-prev");
 const repoNextButton = document.getElementById("repo-next");
 const repoPageIndicator = document.getElementById("repo-page-indicator");
-const profileTrigger = document.getElementById("profile-trigger");
-const intelModal = document.getElementById("visitor-intel");
-const intelOutput = document.getElementById("intel-output");
-const intelClose = document.getElementById("intel-close");
 const panelSwitchButtons = Array.from(document.querySelectorAll(".panel-switch-btn"));
 const mobilePanelsMediaQuery = window.matchMedia("(max-width: 900px)");
 
@@ -24,14 +20,11 @@ const discordLanyardId = "1386016503052243054";
 let lastScrollY = window.scrollY;
 let scrollDirection = "down";
 let cardObserver = null;
-let profileClickCount = 0;
-let profileClickResetTimer = 0;
 let hasCompletedTypingIntro = false;
 let matrixCollisionMasks = [];
 let sortedReposCache = [];
+let pagedReposCache = [];
 let repoPageIndex = 0;
-
-const reposPerPage = 4;
 
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -61,6 +54,9 @@ function syncMobilePanelState() {
   }
 
   setActiveMobilePanel(document.body.dataset.activePanel || "profile");
+  if (sortedReposCache.length) {
+    rebuildRepoPagesAndRender();
+  }
 }
 
 function setMobilePanelSwitcher() {
@@ -234,8 +230,56 @@ function setStats(profile, repos) {
   }
 }
 
+function getRepoPagePattern() {
+  return mobilePanelsMediaQuery.matches ? [2, 3, 2] : [3, 5, 4];
+}
+
+function buildRepoPages(repos) {
+  if (!repos.length) {
+    return [];
+  }
+
+  const pattern = getRepoPagePattern();
+  const pages = [];
+  let cursor = 0;
+  let patternIndex = repos.length % pattern.length;
+
+  while (cursor < repos.length) {
+    const pageSize = Math.max(1, pattern[patternIndex % pattern.length]);
+    pages.push(repos.slice(cursor, cursor + pageSize));
+    cursor += pageSize;
+    patternIndex += 1;
+  }
+
+  return pages;
+}
+
+function rebuildRepoPagesAndRender() {
+  if (!sortedReposCache.length) {
+    pagedReposCache = [];
+    repoPageIndex = 0;
+    updateRepoPaginationControls();
+    return;
+  }
+
+  const currentPage = pagedReposCache[repoPageIndex] || [];
+  const anchorRepoName = currentPage[0]?.name || null;
+  pagedReposCache = buildRepoPages(sortedReposCache);
+
+  if (anchorRepoName) {
+    const nextPageIndex = pagedReposCache.findIndex((page) =>
+      page.some((repo) => repo.name === anchorRepoName)
+    );
+    repoPageIndex = nextPageIndex >= 0 ? nextPageIndex : 0;
+  } else {
+    repoPageIndex = 0;
+  }
+
+  renderRepoPage();
+}
+
 function updateRepoPaginationControls() {
-  const pageCount = Math.max(1, Math.ceil(sortedReposCache.length / reposPerPage));
+  const pageCount = Math.max(1, pagedReposCache.length);
   if (repoPageIndicator) {
     repoPageIndicator.textContent = `${Math.min(repoPageIndex + 1, pageCount)} / ${pageCount}`;
   }
@@ -250,19 +294,17 @@ function updateRepoPaginationControls() {
 }
 
 function renderRepoPage() {
-  if (!sortedReposCache.length) {
+  if (!pagedReposCache.length) {
     renderState("no repositories found yet.");
     return;
   }
 
-  const pageCount = Math.ceil(sortedReposCache.length / reposPerPage);
+  const pageCount = pagedReposCache.length;
   if (repoPageIndex >= pageCount) {
     repoPageIndex = Math.max(0, pageCount - 1);
   }
 
-  const startIndex = repoPageIndex * reposPerPage;
-  const endIndex = startIndex + reposPerPage;
-  const pageRepos = sortedReposCache.slice(startIndex, endIndex);
+  const pageRepos = pagedReposCache[repoPageIndex] || [];
 
   const cards = pageRepos
     .map((repo) => {
@@ -299,6 +341,7 @@ function renderRepos(repos) {
   sortedReposCache = [...repos].sort(
     (a, b) => new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime()
   );
+  pagedReposCache = buildRepoPages(sortedReposCache);
   repoPageIndex = 0;
   renderRepoPage();
 }
@@ -316,7 +359,7 @@ function setRepoPaginationControls() {
 
   if (repoNextButton) {
     repoNextButton.addEventListener("click", () => {
-      const pageCount = Math.ceil(sortedReposCache.length / reposPerPage);
+      const pageCount = pagedReposCache.length;
       if (repoPageIndex >= pageCount - 1) {
         return;
       }
@@ -695,8 +738,8 @@ function setCustomCursor() {
   window.requestAnimationFrame(animate);
 }
 
-function setMatrixRain() {
-  const canvas = document.getElementById("matrix-canvas");
+function setAmbientVisualizer() {
+  const canvas = document.getElementById("ambient-canvas");
   if (!canvas) {
     return;
   }
@@ -706,33 +749,29 @@ function setMatrixRain() {
     return;
   }
 
-  const charset = "01<>[]{}+*#^~=|/ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let columns = [];
+  let bars = [];
   let animationFrame = 0;
   let lastFrameTime = 0;
   let running = false;
   let width = 0;
   let height = 0;
-  let fontSize = 15;
+  let barWidth = 10;
 
   function configureCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     width = window.innerWidth;
     height = window.innerHeight;
-    fontSize = width < 700 ? 13 : 15;
+    barWidth = width < 700 ? 9 : 11;
 
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
-    context.font = `${fontSize}px "JetBrains Mono", monospace`;
-
-    const columnCount = Math.ceil(width / fontSize);
-    columns = Array.from({ length: columnCount }, () => ({
-      y: Math.random() * -120,
-      speed: 0.55 + Math.random() * 1.2,
-      brightChance: 0.08 + Math.random() * 0.1,
+    const barCount = Math.max(24, Math.floor(width / (barWidth + 4)));
+    bars = Array.from({ length: barCount }, () => ({
+      value: Math.random() * 0.25,
+      velocity: 0,
     }));
   }
 
@@ -747,44 +786,66 @@ function setMatrixRain() {
     }
 
     lastFrameTime = timestamp;
-    context.fillStyle = "rgba(1, 10, 4, 0.2)";
+    const time = timestamp * 0.001;
+    context.clearRect(0, 0, width, height);
+
+    const orbA = context.createRadialGradient(
+      width * (0.24 + Math.sin(time * 0.23) * 0.08),
+      height * (0.28 + Math.cos(time * 0.17) * 0.06),
+      20,
+      width * 0.25,
+      height * 0.3,
+      width * 0.54
+    );
+    orbA.addColorStop(0, "rgba(129, 233, 183, 0.15)");
+    orbA.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = orbA;
     context.fillRect(0, 0, width, height);
 
-    function isMaskedByRipple(x, y) {
-      for (const mask of matrixCollisionMasks) {
-        const distance = Math.abs(x - mask.x) + Math.abs(y - mask.y);
-        if (distance >= mask.innerRadius && distance <= mask.outerRadius) {
-          return true;
-        }
-      }
-      return false;
-    }
+    const orbB = context.createRadialGradient(
+      width * (0.78 + Math.sin(time * 0.19) * 0.06),
+      height * (0.2 + Math.sin(time * 0.14) * 0.05),
+      12,
+      width * 0.78,
+      height * 0.2,
+      width * 0.4
+    );
+    orbB.addColorStop(0, "rgba(109, 166, 255, 0.12)");
+    orbB.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = orbB;
+    context.fillRect(0, 0, width, height);
 
-    columns.forEach((column, index) => {
-      const x = index * fontSize;
-      const y = column.y * fontSize;
-      const char = charset[Math.floor(Math.random() * charset.length)];
+    const baseline = height * 0.87;
+    const barGap = 4;
+    const totalBarsWidth = bars.length * (barWidth + barGap);
+    const startX = Math.max(0, (width - totalBarsWidth) * 0.5);
 
-      const shouldMaskMain = isMaskedByRipple(x, y);
-      const shouldMaskLead = isMaskedByRipple(x, y - fontSize);
+    bars.forEach((bar, index) => {
+      const waveA = Math.sin(time * 2.3 + index * 0.36) * 0.5 + 0.5;
+      const waveB = Math.sin(time * 1.2 + index * 0.12 + 1.8) * 0.5 + 0.5;
+      const target = 0.08 + waveA * 0.3 + waveB * 0.2 + Math.random() * 0.06;
+      bar.velocity += (target - bar.value) * 0.16;
+      bar.velocity *= 0.84;
+      bar.value = Math.max(0.04, Math.min(1, bar.value + bar.velocity));
 
-      if (!shouldMaskLead && Math.random() < column.brightChance) {
-        context.fillStyle = "rgba(231, 255, 239, 0.92)";
-        context.fillText(char, x, y - fontSize);
-      }
+      const barHeight = Math.max(6, bar.value * height * 0.14);
+      const x = startX + index * (barWidth + barGap);
+      const y = baseline - barHeight;
+      const alpha = 0.2 + Math.min(0.28, bar.value * 0.3);
 
-      if (!shouldMaskMain) {
-        context.fillStyle = `rgba(124, 255, 171, ${0.25 + Math.random() * 0.5})`;
-        context.fillText(char, x, y);
-      }
-
-      column.y += column.speed;
-
-      if (y > height + fontSize * 10 && Math.random() > 0.965) {
-        column.y = Math.random() * -60;
-        column.speed = 0.55 + Math.random() * 1.2;
-      }
+      const fill = context.createLinearGradient(x, y, x, baseline);
+      fill.addColorStop(0, `rgba(153, 224, 255, ${alpha.toFixed(3)})`);
+      fill.addColorStop(1, `rgba(126, 255, 176, ${(alpha * 0.34).toFixed(3)})`);
+      context.fillStyle = fill;
+      context.fillRect(x, y, barWidth, barHeight);
     });
+
+    context.strokeStyle = "rgba(157, 226, 198, 0.2)";
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(0, baseline + 0.5);
+    context.lineTo(width, baseline + 0.5);
+    context.stroke();
 
     animationFrame = requestAnimationFrame(draw);
   }
@@ -794,7 +855,7 @@ function setMatrixRain() {
       return;
     }
 
-    canvas.style.opacity = "0.34";
+    canvas.style.opacity = "0.9";
     running = true;
     lastFrameTime = 0;
     animationFrame = requestAnimationFrame(draw);
@@ -851,8 +912,6 @@ function setAsciiDiamondRipples() {
     ".social-card",
     ".repo-card",
     ".photo-wrap",
-    ".profile-trigger",
-    ".intel-panel",
     "a",
     "button",
     "input",
@@ -1032,10 +1091,6 @@ function setAsciiDiamondRipples() {
         return;
       }
 
-      if (intelModal?.classList.contains("is-open")) {
-        return;
-      }
-
       queueRipple(event.clientX, event.clientY);
     },
     { passive: true }
@@ -1055,274 +1110,6 @@ function setAsciiDiamondRipples() {
 
   configureCanvas();
   applyMotionPreference();
-}
-
-function safeValue(value, fallback = "unavailable") {
-  if (value === undefined || value === null || value === "") {
-    return fallback;
-  }
-
-  return String(value);
-}
-
-function formatBytes(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) {
-    return "unavailable";
-  }
-
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let value = bytes;
-  let unitIndex = 0;
-
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${value.toFixed(2)} ${units[unitIndex]}`;
-}
-
-function getWebGlRenderer() {
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-  if (!context) {
-    return "unavailable";
-  }
-
-  const extension = context.getExtension("WEBGL_debug_renderer_info");
-  if (!extension) {
-    return "masked by browser";
-  }
-
-  const vendor = context.getParameter(extension.UNMASKED_VENDOR_WEBGL);
-  const renderer = context.getParameter(extension.UNMASKED_RENDERER_WEBGL);
-  return `${safeValue(vendor)} | ${safeValue(renderer)}`;
-}
-
-async function getPermissionSnapshot() {
-  if (!navigator.permissions || typeof navigator.permissions.query !== "function") {
-    return "Permissions API unavailable";
-  }
-
-  const permissionNames = ["geolocation", "notifications", "camera", "microphone"];
-  const results = await Promise.allSettled(
-    permissionNames.map((name) => navigator.permissions.query({ name }))
-  );
-
-  return results
-    .map((result, index) => {
-      if (result.status === "fulfilled") {
-        return `${permissionNames[index]}=${result.value.state}`;
-      }
-      return `${permissionNames[index]}=unsupported`;
-    })
-    .join(", ");
-}
-
-async function getBatterySnapshot() {
-  if (!navigator.getBattery) {
-    return "Battery API unavailable";
-  }
-
-  try {
-    const battery = await navigator.getBattery();
-    const levelPercent = Math.round(battery.level * 100);
-    return `${levelPercent}% | charging=${battery.charging}`;
-  } catch (error) {
-    return "unavailable";
-  }
-}
-
-async function getIpSnapshot() {
-  const ipResult = {
-    ip: "unavailable",
-    city: "unavailable",
-    region: "unavailable",
-    country: "unavailable",
-    org: "unavailable",
-    asn: "unavailable",
-    timezone: "unavailable",
-    latitude: "unavailable",
-    longitude: "unavailable",
-  };
-
-  try {
-    const response = await fetch("https://ipapi.co/json/", { cache: "no-store" });
-    if (response.ok) {
-      const data = await response.json();
-      ipResult.ip = safeValue(data.ip);
-      ipResult.city = safeValue(data.city);
-      ipResult.region = safeValue(data.region);
-      ipResult.country = safeValue(data.country_name);
-      ipResult.org = safeValue(data.org);
-      ipResult.asn = safeValue(data.asn);
-      ipResult.timezone = safeValue(data.timezone);
-      ipResult.latitude = safeValue(data.latitude);
-      ipResult.longitude = safeValue(data.longitude);
-      return ipResult;
-    }
-  } catch (error) {
-    // Fall through to secondary endpoint.
-  }
-
-  try {
-    const response = await fetch("https://api.ipify.org?format=json", { cache: "no-store" });
-    if (response.ok) {
-      const data = await response.json();
-      ipResult.ip = safeValue(data.ip);
-    }
-  } catch (error) {
-    // Keep fallback values.
-  }
-
-  return ipResult;
-}
-
-async function collectVisitorIntel() {
-  const connection =
-    navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
-  const memoryInfo = performance.memory || null;
-  const ipInfo = await getIpSnapshot();
-  const permissions = await getPermissionSnapshot();
-  const battery = await getBatterySnapshot();
-
-  const fields = [
-    `timestamp: ${new Date().toISOString()}`,
-    `ip: ${ipInfo.ip}`,
-    `location: ${ipInfo.city}, ${ipInfo.region}, ${ipInfo.country}`,
-    `org: ${ipInfo.org}`,
-    `asn: ${ipInfo.asn}`,
-    `ip-timezone: ${ipInfo.timezone}`,
-    `coords: ${ipInfo.latitude}, ${ipInfo.longitude}`,
-    "",
-    `user-agent: ${safeValue(navigator.userAgent)}`,
-    `platform: ${safeValue(navigator.platform)}`,
-    `languages: ${safeValue(navigator.languages?.join(", "))}`,
-    `hardware-threads: ${safeValue(navigator.hardwareConcurrency)}`,
-    `device-memory-gb: ${safeValue(navigator.deviceMemory)}`,
-    `max-touch-points: ${safeValue(navigator.maxTouchPoints)}`,
-    `cookies-enabled: ${safeValue(navigator.cookieEnabled)}`,
-    `do-not-track: ${safeValue(navigator.doNotTrack)}`,
-    `java-enabled: ${
-      typeof navigator.javaEnabled === "function" ? safeValue(navigator.javaEnabled()) : "unsupported"
-    }`,
-    `online: ${safeValue(navigator.onLine)}`,
-    `connection: ${
-      connection
-        ? `type=${safeValue(connection.type)}, effective=${safeValue(
-            connection.effectiveType
-          )}, downlink=${safeValue(connection.downlink)}Mbps, rtt=${safeValue(
-            connection.rtt
-          )}ms, saveData=${safeValue(connection.saveData)}`
-        : "unavailable"
-    }`,
-    "",
-    `screen: ${window.screen.width}x${window.screen.height} @ ${safeValue(
-      window.devicePixelRatio
-    )}x`,
-    `viewport: ${window.innerWidth}x${window.innerHeight}`,
-    `color-depth: ${safeValue(window.screen.colorDepth)}`,
-    `timezone: ${safeValue(Intl.DateTimeFormat().resolvedOptions().timeZone)}`,
-    `local-time: ${new Date().toString()}`,
-    `prefers-color-scheme: ${
-      window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
-    }`,
-    `prefers-reduced-motion: ${safeValue(reducedMotionQuery.matches)}`,
-    "",
-    `referrer: ${safeValue(document.referrer, "direct")}`,
-    `history-length: ${safeValue(window.history.length)}`,
-    `plugins: ${safeValue(navigator.plugins?.length)}`,
-    `storage-local: ${safeValue(!!window.localStorage)}`,
-    `storage-session: ${safeValue(!!window.sessionStorage)}`,
-    `permissions: ${permissions}`,
-    `battery: ${battery}`,
-    `gpu: ${getWebGlRenderer()}`,
-    `memory-limit: ${memoryInfo ? formatBytes(memoryInfo.jsHeapSizeLimit) : "unavailable"}`,
-    `memory-used: ${memoryInfo ? formatBytes(memoryInfo.usedJSHeapSize) : "unavailable"}`,
-  ];
-
-  return fields.join("\n");
-}
-
-function closeVisitorIntel() {
-  if (!intelModal) {
-    return;
-  }
-
-  intelModal.classList.remove("is-open");
-  intelModal.setAttribute("aria-hidden", "true");
-}
-
-async function openVisitorIntel() {
-  if (!intelModal || !intelOutput) {
-    return;
-  }
-
-  intelModal.classList.add("is-open");
-  intelModal.setAttribute("aria-hidden", "false");
-  intelOutput.textContent = "Collecting intel...";
-
-  const output = await collectVisitorIntel();
-  intelOutput.textContent = output;
-}
-
-function resetProfileClickCounter() {
-  profileClickCount = 0;
-  if (profileClickResetTimer) {
-    window.clearTimeout(profileClickResetTimer);
-    profileClickResetTimer = 0;
-  }
-}
-
-function setProfileEasterEgg() {
-  if (!profileTrigger) {
-    return;
-  }
-
-  const clickWindowMs = 1400;
-  const requiredClicks = 5;
-
-  function registerProfileClick() {
-    profileClickCount += 1;
-    if (profileClickResetTimer) {
-      window.clearTimeout(profileClickResetTimer);
-    }
-
-    profileClickResetTimer = window.setTimeout(() => {
-      resetProfileClickCounter();
-    }, clickWindowMs);
-
-    if (profileClickCount >= requiredClicks) {
-      resetProfileClickCounter();
-      openVisitorIntel();
-    }
-  }
-
-  profileTrigger.addEventListener("click", registerProfileClick);
-  profileTrigger.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      registerProfileClick();
-    }
-  });
-
-  if (intelClose) {
-    intelClose.addEventListener("click", closeVisitorIntel);
-  }
-
-  if (intelModal) {
-    intelModal.addEventListener("click", (event) => {
-      if (event.target === intelModal) {
-        closeVisitorIntel();
-      }
-    });
-  }
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeVisitorIntel();
-    }
-  });
 }
 
 function getTypingTargets() {
@@ -1396,9 +1183,15 @@ async function initializePage() {
   setMobilePanelSwitcher();
   trackScrollDirection();
   setAnimatedTitle();
-  setMatrixRain();
-  setProfileEasterEgg();
+  setAmbientVisualizer();
   setRepoPaginationControls();
+  let repoReflowTimer = 0;
+  window.addEventListener("resize", () => {
+    window.clearTimeout(repoReflowTimer);
+    repoReflowTimer = window.setTimeout(() => {
+      rebuildRepoPagesAndRender();
+    }, 120);
+  });
 
   await Promise.allSettled([loadDiscordStatus(), loadRepos()]);
   await runTypingIntro();
