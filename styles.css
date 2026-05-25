@@ -372,9 +372,11 @@ h2 {
 
 .repo-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(138px, clamp(148px, 24vh, 220px)));
+  grid-template-rows: none;
+  grid-auto-rows: minmax(0, max-content);
   gap: 0.58rem;
   align-content: start;
+  align-items: start;
   min-height: 0;
   flex: 1 1 auto;
 }
@@ -788,7 +790,8 @@ h2 {
 
   .repo-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: minmax(0, max-content);
   }
 
   .social-card {
