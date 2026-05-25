@@ -738,6 +738,36 @@ function setCustomCursor() {
   window.requestAnimationFrame(animate);
 }
 
+function setDepthParallax() {
+  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches || reducedMotionQuery.matches) {
+    return;
+  }
+
+  const root = document.documentElement;
+  const maxX = 1.8;
+  const maxY = 2.2;
+
+  function updateFromPointer(clientX, clientY) {
+    const nx = clientX / window.innerWidth - 0.5;
+    const ny = clientY / window.innerHeight - 0.5;
+    root.style.setProperty("--layout-tilt-y", `${(nx * maxY).toFixed(3)}deg`);
+    root.style.setProperty("--layout-tilt-x", `${(-ny * maxX).toFixed(3)}deg`);
+  }
+
+  window.addEventListener(
+    "pointermove",
+    (event) => {
+      updateFromPointer(event.clientX, event.clientY);
+    },
+    { passive: true }
+  );
+
+  window.addEventListener("pointerleave", () => {
+    root.style.setProperty("--layout-tilt-y", "0deg");
+    root.style.setProperty("--layout-tilt-x", "0deg");
+  });
+}
+
 function setAmbientVisualizer() {
   const canvas = document.getElementById("ambient-canvas");
   if (!canvas) {
@@ -749,30 +779,109 @@ function setAmbientVisualizer() {
     return;
   }
 
-  let bars = [];
+  let stars = [];
+  let waveBands = [];
   let animationFrame = 0;
   let lastFrameTime = 0;
   let running = false;
   let width = 0;
   let height = 0;
-  let barWidth = 10;
+  let horizonY = 0;
 
   function configureCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     width = window.innerWidth;
     height = window.innerHeight;
-    barWidth = width < 700 ? 9 : 11;
+    horizonY = height * (width < 700 ? 0.66 : 0.62);
 
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const barCount = Math.max(24, Math.floor(width / (barWidth + 4)));
-    bars = Array.from({ length: barCount }, () => ({
-      value: Math.random() * 0.25,
-      velocity: 0,
+    stars = Array.from({ length: 50 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * (horizonY * 0.9),
+      radius: 0.5 + Math.random() * 1.6,
+      twinkle: Math.random() * Math.PI * 2,
+      speed: 0.4 + Math.random() * 0.9,
     }));
+    waveBands = [
+      { amp: 16, wave: 0.014, speed: 0.84, yOffset: 0, alpha: 0.3, line: 2.2 },
+      { amp: 22, wave: 0.011, speed: 0.63, yOffset: 12, alpha: 0.22, line: 2.6 },
+      { amp: 30, wave: 0.008, speed: 0.44, yOffset: 26, alpha: 0.17, line: 3.1 },
+      { amp: 40, wave: 0.006, speed: 0.3, yOffset: 44, alpha: 0.12, line: 3.5 },
+    ].map((band) => ({
+      ...band,
+      phase: Math.random() * Math.PI * 2,
+    }));
+  }
+
+  function drawBackdrop(time) {
+    const sky = context.createLinearGradient(0, 0, 0, horizonY + 40);
+    sky.addColorStop(0, "rgba(9, 24, 58, 0.52)");
+    sky.addColorStop(0.55, "rgba(8, 24, 56, 0.26)");
+    sky.addColorStop(1, "rgba(7, 22, 48, 0.04)");
+    context.fillStyle = sky;
+    context.fillRect(0, 0, width, horizonY + 60);
+
+    const moon = context.createRadialGradient(
+      width * (0.74 + Math.sin(time * 0.05) * 0.02),
+      height * 0.2,
+      8,
+      width * 0.74,
+      height * 0.2,
+      width * 0.16
+    );
+    moon.addColorStop(0, "rgba(208, 235, 255, 0.24)");
+    moon.addColorStop(0.4, "rgba(122, 182, 255, 0.14)");
+    moon.addColorStop(1, "rgba(0, 0, 0, 0)");
+    context.fillStyle = moon;
+    context.fillRect(0, 0, width, horizonY + 20);
+
+    stars.forEach((star) => {
+      const alpha = 0.18 + (Math.sin(time * star.speed + star.twinkle) * 0.5 + 0.5) * 0.35;
+      context.fillStyle = `rgba(205, 229, 255, ${alpha.toFixed(3)})`;
+      context.beginPath();
+      context.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+      context.fill();
+    });
+  }
+
+  function drawWater(time) {
+    const water = context.createLinearGradient(0, horizonY - 20, 0, height);
+    water.addColorStop(0, "rgba(13, 40, 85, 0.44)");
+    water.addColorStop(1, "rgba(4, 16, 36, 0.76)");
+    context.fillStyle = water;
+    context.fillRect(0, horizonY - 20, width, height - horizonY + 20);
+
+    waveBands.forEach((band, index) => {
+      context.beginPath();
+      for (let x = 0; x <= width + 6; x += 6) {
+        const y =
+          horizonY +
+          band.yOffset +
+          Math.sin(x * band.wave + time * band.speed + band.phase) * band.amp +
+          Math.sin(x * (band.wave * 0.54) - time * (band.speed * 0.68)) * (band.amp * 0.36);
+        if (x === 0) {
+          context.moveTo(x, y);
+        } else {
+          context.lineTo(x, y);
+        }
+      }
+      const lineColor = `rgba(157, 214, 255, ${band.alpha.toFixed(3)})`;
+      context.strokeStyle = lineColor;
+      context.lineWidth = band.line;
+      context.stroke();
+
+      if (index <= 1) {
+        context.lineTo(width, height);
+        context.lineTo(0, height);
+        context.closePath();
+        context.fillStyle = `rgba(108, 176, 255, ${(band.alpha * 0.15).toFixed(3)})`;
+        context.fill();
+      }
+    });
   }
 
   function draw(timestamp) {
@@ -788,64 +897,8 @@ function setAmbientVisualizer() {
     lastFrameTime = timestamp;
     const time = timestamp * 0.001;
     context.clearRect(0, 0, width, height);
-
-    const orbA = context.createRadialGradient(
-      width * (0.24 + Math.sin(time * 0.23) * 0.08),
-      height * (0.28 + Math.cos(time * 0.17) * 0.06),
-      20,
-      width * 0.25,
-      height * 0.3,
-      width * 0.54
-    );
-    orbA.addColorStop(0, "rgba(129, 233, 183, 0.15)");
-    orbA.addColorStop(1, "rgba(0, 0, 0, 0)");
-    context.fillStyle = orbA;
-    context.fillRect(0, 0, width, height);
-
-    const orbB = context.createRadialGradient(
-      width * (0.78 + Math.sin(time * 0.19) * 0.06),
-      height * (0.2 + Math.sin(time * 0.14) * 0.05),
-      12,
-      width * 0.78,
-      height * 0.2,
-      width * 0.4
-    );
-    orbB.addColorStop(0, "rgba(109, 166, 255, 0.12)");
-    orbB.addColorStop(1, "rgba(0, 0, 0, 0)");
-    context.fillStyle = orbB;
-    context.fillRect(0, 0, width, height);
-
-    const baseline = height * 0.87;
-    const barGap = 4;
-    const totalBarsWidth = bars.length * (barWidth + barGap);
-    const startX = Math.max(0, (width - totalBarsWidth) * 0.5);
-
-    bars.forEach((bar, index) => {
-      const waveA = Math.sin(time * 2.3 + index * 0.36) * 0.5 + 0.5;
-      const waveB = Math.sin(time * 1.2 + index * 0.12 + 1.8) * 0.5 + 0.5;
-      const target = 0.08 + waveA * 0.3 + waveB * 0.2 + Math.random() * 0.06;
-      bar.velocity += (target - bar.value) * 0.16;
-      bar.velocity *= 0.84;
-      bar.value = Math.max(0.04, Math.min(1, bar.value + bar.velocity));
-
-      const barHeight = Math.max(6, bar.value * height * 0.14);
-      const x = startX + index * (barWidth + barGap);
-      const y = baseline - barHeight;
-      const alpha = 0.2 + Math.min(0.28, bar.value * 0.3);
-
-      const fill = context.createLinearGradient(x, y, x, baseline);
-      fill.addColorStop(0, `rgba(153, 224, 255, ${alpha.toFixed(3)})`);
-      fill.addColorStop(1, `rgba(126, 255, 176, ${(alpha * 0.34).toFixed(3)})`);
-      context.fillStyle = fill;
-      context.fillRect(x, y, barWidth, barHeight);
-    });
-
-    context.strokeStyle = "rgba(157, 226, 198, 0.2)";
-    context.lineWidth = 1;
-    context.beginPath();
-    context.moveTo(0, baseline + 0.5);
-    context.lineTo(width, baseline + 0.5);
-    context.stroke();
+    drawBackdrop(time);
+    drawWater(time);
 
     animationFrame = requestAnimationFrame(draw);
   }
@@ -855,7 +908,7 @@ function setAmbientVisualizer() {
       return;
     }
 
-    canvas.style.opacity = "0.9";
+    canvas.style.opacity = "0.92";
     running = true;
     lastFrameTime = 0;
     animationFrame = requestAnimationFrame(draw);
@@ -963,7 +1016,7 @@ function setAsciiDiamondRipples() {
     const snappedX = Math.round(x / cellSize) * cellSize;
     const snappedY = Math.round(y / cellSize) * cellSize;
 
-    context.fillStyle = `rgba(126, 255, 176, ${alpha.toFixed(3)})`;
+    context.fillStyle = `rgba(124, 206, 255, ${alpha.toFixed(3)})`;
     context.fillText(char, snappedX, snappedY);
   }
 
@@ -1183,6 +1236,7 @@ async function initializePage() {
   setMobilePanelSwitcher();
   trackScrollDirection();
   setAnimatedTitle();
+  setDepthParallax();
   setAmbientVisualizer();
   setRepoPaginationControls();
   let repoReflowTimer = 0;
