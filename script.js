@@ -16,6 +16,8 @@ const profileTrigger = document.getElementById("profile-trigger");
 const intelModal = document.getElementById("visitor-intel");
 const intelOutput = document.getElementById("intel-output");
 const intelClose = document.getElementById("intel-close");
+const panelSwitchButtons = Array.from(document.querySelectorAll(".panel-switch-btn"));
+const mobilePanelsMediaQuery = window.matchMedia("(max-width: 900px)");
 
 const discordLanyardId = "1386016503052243054";
 
@@ -32,6 +34,54 @@ let repoPageIndex = 0;
 const reposPerPage = 4;
 
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function setActiveMobilePanel(panelName) {
+  const validPanel = panelName === "projects" ? "projects" : "profile";
+  document.body.dataset.activePanel = validPanel;
+
+  panelSwitchButtons.forEach((button) => {
+    const isActive = button.dataset.panelTarget === validPanel;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
+function syncMobilePanelState() {
+  const isMobile = mobilePanelsMediaQuery.matches;
+  document.body.classList.toggle("is-mobile-panels", isMobile);
+
+  if (!isMobile) {
+    delete document.body.dataset.activePanel;
+    panelSwitchButtons.forEach((button) => {
+      const isProfileButton = button.dataset.panelTarget === "profile";
+      button.classList.toggle("is-active", isProfileButton);
+      button.setAttribute("aria-pressed", String(isProfileButton));
+    });
+    return;
+  }
+
+  setActiveMobilePanel(document.body.dataset.activePanel || "profile");
+}
+
+function setMobilePanelSwitcher() {
+  if (!panelSwitchButtons.length) {
+    return;
+  }
+
+  panelSwitchButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setActiveMobilePanel(button.dataset.panelTarget || "profile");
+    });
+  });
+
+  if (typeof mobilePanelsMediaQuery.addEventListener === "function") {
+    mobilePanelsMediaQuery.addEventListener("change", syncMobilePanelState);
+  } else if (typeof mobilePanelsMediaQuery.addListener === "function") {
+    mobilePanelsMediaQuery.addListener(syncMobilePanelState);
+  }
+
+  syncMobilePanelState();
+}
 
 function setAnimatedTitle() {
   const shaanDelayMs = 500;
@@ -1343,6 +1393,7 @@ async function runTypingIntro() {
 }
 
 async function initializePage() {
+  setMobilePanelSwitcher();
   trackScrollDirection();
   setAnimatedTitle();
   setMatrixRain();

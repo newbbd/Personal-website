@@ -19,8 +19,28 @@
     <div class="crt-vignette" aria-hidden="true"></div>
 
     <main class="page">
+      <div class="mobile-panel-switch" role="group" aria-label="Section view switcher">
+        <button
+          type="button"
+          class="panel-switch-btn is-active"
+          id="panel-switch-profile"
+          data-panel-target="profile"
+          aria-pressed="true"
+        >
+          Profile
+        </button>
+        <button
+          type="button"
+          class="panel-switch-btn"
+          id="panel-switch-projects"
+          data-panel-target="projects"
+          aria-pressed="false"
+        >
+          Projects
+        </button>
+      </div>
       <div class="layout-shell">
-        <aside class="left-column">
+        <aside class="left-column" data-panel-id="profile">
           <section class="hero">
             <div class="photo-wrap reveal">
               <button
@@ -144,7 +164,7 @@
           </section>
         </aside>
 
-        <section id="repos" class="repos right-column reveal">
+        <section id="repos" class="repos right-column reveal" data-panel-id="projects">
           <div class="repos-header">
             <h2>Projects</h2>
             <div class="repo-controls" aria-label="Repo pages">
