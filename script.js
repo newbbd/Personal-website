@@ -794,7 +794,7 @@ function setMatrixRain() {
       return;
     }
 
-    canvas.style.opacity = "0.5";
+    canvas.style.opacity = "0.34";
     running = true;
     lastFrameTime = 0;
     animationFrame = requestAnimationFrame(draw);
@@ -1017,7 +1017,7 @@ function setAsciiDiamondRipples() {
       return;
     }
 
-    canvas.style.opacity = "0.72";
+    canvas.style.opacity = "0.52";
     configureCanvas();
   }
 
