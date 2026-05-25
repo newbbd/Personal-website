@@ -9,6 +9,9 @@ const starStat = document.getElementById("stat-stars");
 const discordStatus = document.getElementById("discord-status");
 const discordActivity = document.getElementById("discord-activity");
 const discordIndicator = document.getElementById("discord-indicator");
+const repoPrevButton = document.getElementById("repo-prev");
+const repoNextButton = document.getElementById("repo-next");
+const repoPageIndicator = document.getElementById("repo-page-indicator");
 const profileTrigger = document.getElementById("profile-trigger");
 const intelModal = document.getElementById("visitor-intel");
 const intelOutput = document.getElementById("intel-output");
@@ -23,6 +26,10 @@ let profileClickCount = 0;
 let profileClickResetTimer = 0;
 let hasCompletedTypingIntro = false;
 let matrixCollisionMasks = [];
+let sortedReposCache = [];
+let repoPageIndex = 0;
+
+const reposPerPage = 4;
 
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -147,6 +154,9 @@ function escapeHtml(value) {
 
 function renderState(message) {
   repoGrid.innerHTML = `<p class="repo-state">${escapeHtml(message)}</p>`;
+  sortedReposCache = [];
+  repoPageIndex = 0;
+  updateRepoPaginationControls();
 }
 
 function formatNumber(value) {
@@ -174,21 +184,39 @@ function setStats(profile, repos) {
   }
 }
 
-function renderRepos(repos) {
-  if (!repos.length) {
+function updateRepoPaginationControls() {
+  const pageCount = Math.max(1, Math.ceil(sortedReposCache.length / reposPerPage));
+  if (repoPageIndicator) {
+    repoPageIndicator.textContent = `${Math.min(repoPageIndex + 1, pageCount)} / ${pageCount}`;
+  }
+
+  if (repoPrevButton) {
+    repoPrevButton.disabled = repoPageIndex <= 0;
+  }
+
+  if (repoNextButton) {
+    repoNextButton.disabled = repoPageIndex >= pageCount - 1;
+  }
+}
+
+function renderRepoPage() {
+  if (!sortedReposCache.length) {
     renderState("no repositories found yet.");
     return;
   }
 
-  const sortedRepos = repos.sort(
-    (a, b) => new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime()
-  );
+  const pageCount = Math.ceil(sortedReposCache.length / reposPerPage);
+  if (repoPageIndex >= pageCount) {
+    repoPageIndex = Math.max(0, pageCount - 1);
+  }
 
-  const cards = sortedRepos
+  const startIndex = repoPageIndex * reposPerPage;
+  const endIndex = startIndex + reposPerPage;
+  const pageRepos = sortedReposCache.slice(startIndex, endIndex);
+
+  const cards = pageRepos
     .map((repo) => {
-      const description = repo.description
-        ? repo.description
-        : "no description added yet.";
+      const description = repo.description ? repo.description : "no description added yet.";
       const language = repo.language ? repo.language : "unspecified";
 
       return `
@@ -206,9 +234,48 @@ function renderRepos(repos) {
     .join("");
 
   repoGrid.innerHTML = cards;
+  updateRepoPaginationControls();
   if (hasCompletedTypingIntro) {
     setCardScrollAnimations();
   }
+}
+
+function renderRepos(repos) {
+  if (!repos.length) {
+    renderState("no repositories found yet.");
+    return;
+  }
+
+  sortedReposCache = [...repos].sort(
+    (a, b) => new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime()
+  );
+  repoPageIndex = 0;
+  renderRepoPage();
+}
+
+function setRepoPaginationControls() {
+  if (repoPrevButton) {
+    repoPrevButton.addEventListener("click", () => {
+      if (repoPageIndex <= 0) {
+        return;
+      }
+      repoPageIndex -= 1;
+      renderRepoPage();
+    });
+  }
+
+  if (repoNextButton) {
+    repoNextButton.addEventListener("click", () => {
+      const pageCount = Math.ceil(sortedReposCache.length / reposPerPage);
+      if (repoPageIndex >= pageCount - 1) {
+        return;
+      }
+      repoPageIndex += 1;
+      renderRepoPage();
+    });
+  }
+
+  updateRepoPaginationControls();
 }
 
 function setRepoAndStarStatsOnly(repos) {
@@ -1278,10 +1345,9 @@ async function runTypingIntro() {
 async function initializePage() {
   trackScrollDirection();
   setAnimatedTitle();
-  setCustomCursor();
   setMatrixRain();
-  setAsciiDiamondRipples();
   setProfileEasterEgg();
+  setRepoPaginationControls();
 
   await Promise.allSettled([loadDiscordStatus(), loadRepos()]);
   await runTypingIntro();
