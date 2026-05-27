@@ -3,81 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Shaan's social profile and links." />
-    <meta name="theme-color" content="#050505" />
+    <meta name="description" content="Shaan's links, socials, and profiles." />
+    <meta name="theme-color" content="#07070a" />
     <title>Shaan</title>
     <link rel="icon" type="image/jpeg" href="pfp.jpg" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="is-locked">
-    <div class="background" aria-hidden="true">
-      <img src="pfp.jpg" alt="" class="background-image" />
-      <div class="noise"></div>
-      <div class="glow glow-one"></div>
-      <div class="glow glow-two"></div>
+  <body>
+    <input class="entry-toggle" type="checkbox" id="enter-toggle" aria-label="Enter profile" />
+
+    <div class="scene" aria-hidden="true">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="grid"></div>
+      <div class="grain"></div>
     </div>
 
-    <button
-      id="enter-screen"
-      class="enter-screen"
-      type="button"
-      aria-label="Enter profile"
-      onclick="document.body.classList.remove('is-locked');document.body.classList.add('has-entered');"
-    >
-      <span class="enter-title">click to enter</span>
-      <span class="enter-subtitle">@newbbd</span>
-    </button>
+    <label class="entry-screen" for="enter-toggle">
+      <span class="entry-box">
+        <span class="entry-title">click to enter</span>
+        <span class="entry-subtitle">@newbbd</span>
+      </span>
+    </label>
 
-    <main class="profile-shell" aria-label="Shaan social profile">
+    <main class="page" aria-label="Shaan social profile">
       <section class="profile-card">
-        <div class="avatar-wrap">
-          <img src="pfp.jpg" alt="Shaan profile picture" class="avatar" />
+        <img src="pfp.jpg" alt="Shaan profile picture" class="avatar" />
+
+        <div class="identity">
+          <p class="handle">@newbbd</p>
+          <h1>Shaan</h1>
+          <p class="bio">socials, games, and profiles</p>
         </div>
 
-        <p class="handle">@newbbd</p>
-        <h1>Shaan</h1>
-        <p class="bio">links, socials, and whatever I am on</p>
-
-        <div class="status-row" aria-label="Discord status">
-          <span class="status-dot is-online" aria-hidden="true"></span>
-          <span>online</span>
-          <span class="status-divider">/</span>
-          <span>@sh44nz</span>
+        <div class="status-pill" aria-label="Discord username">
+          <span class="pulse" aria-hidden="true"></span>
+          <span>Discord</span>
+          <strong>@sh44nz</strong>
         </div>
 
-        <div class="social-grid" aria-label="Social links">
-          <a class="social-card" href="https://github.com/newbbd" target="_blank" rel="noreferrer">
-            <span class="social-icon">GH</span>
-            <span>
-              <strong>GitHub</strong>
-              <small>@newbbd</small>
-            </span>
-          </a>
-
-          <a class="social-card" href="https://www.roblox.com/users/4607785415/profile" target="_blank" rel="noreferrer">
-            <span class="social-icon">RB</span>
-            <span>
+        <nav class="links" aria-label="Social links">
+          <a class="link-card" href="https://www.roblox.com/users/4607785415/profile" target="_blank" rel="noreferrer">
+            <span class="icon">R</span>
+            <span class="link-text">
               <strong>Roblox</strong>
               <small>Profile</small>
             </span>
+            <span class="arrow">↗</span>
           </a>
 
-          <a class="social-card" href="https://steamcommunity.com/profiles/76561198763811803/" target="_blank" rel="noreferrer">
-            <span class="social-icon">ST</span>
-            <span>
+          <a class="link-card" href="https://steamcommunity.com/profiles/76561198763811803/" target="_blank" rel="noreferrer">
+            <span class="icon">S</span>
+            <span class="link-text">
               <strong>Steam</strong>
               <small>super.ark81</small>
             </span>
+            <span class="arrow">↗</span>
           </a>
 
-          <a class="social-card" href="https://www.xbox.com/en-US/play/user/brreezii" target="_blank" rel="noreferrer">
-            <span class="social-icon">XB</span>
-            <span>
+          <a class="link-card" href="https://www.xbox.com/en-US/play/user/brreezii" target="_blank" rel="noreferrer">
+            <span class="icon">X</span>
+            <span class="link-text">
               <strong>Xbox</strong>
               <small>brreezii</small>
             </span>
+            <span class="arrow">↗</span>
           </a>
-        </div>
+
+          <a class="link-card" href="https://github.com/newbbd" target="_blank" rel="noreferrer">
+            <span class="icon">G</span>
+            <span class="link-text">
+              <strong>GitHub</strong>
+              <small>@newbbd</small>
+            </span>
+            <span class="arrow">↗</span>
+          </a>
+        </nav>
       </section>
     </main>
   </body>
