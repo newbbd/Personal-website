@@ -17,7 +17,13 @@
       <div class="glow glow-two"></div>
     </div>
 
-    <button id="enter-screen" class="enter-screen" type="button" aria-label="Enter profile">
+    <button
+      id="enter-screen"
+      class="enter-screen"
+      type="button"
+      aria-label="Enter profile"
+      onclick="document.body.classList.remove('is-locked');document.body.classList.add('has-entered');"
+    >
       <span class="enter-title">click to enter</span>
       <span class="enter-subtitle">@newbbd</span>
     </button>
@@ -32,11 +38,11 @@
         <h1>Shaan</h1>
         <p class="bio">links, socials, and whatever I am on</p>
 
-        <div class="status-row" aria-live="polite">
-          <span id="discord-indicator" class="status-dot" aria-hidden="true"></span>
-          <span id="discord-status">Checking Discord</span>
+        <div class="status-row" aria-label="Discord status">
+          <span class="status-dot is-online" aria-hidden="true"></span>
+          <span>online</span>
           <span class="status-divider">/</span>
-          <span id="discord-activity">No activity loaded</span>
+          <span>@sh44nz</span>
         </div>
 
         <div class="social-grid" aria-label="Social links">
@@ -74,7 +80,5 @@
         </div>
       </section>
     </main>
-
-    <script src="script.js" defer></script>
   </body>
 </html>
