@@ -3,179 +3,147 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shaan | Builder Portfolio</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@500;700&display=swap"
-      rel="stylesheet"
+    <meta
+      name="description"
+      content="Shaan's personal portfolio, project hub, and developer profile."
     />
+    <meta name="color-scheme" content="dark" />
+    <title>Shaan | Web Developer</title>
     <link rel="icon" type="image/jpeg" href="pfp.jpg" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <canvas id="ambient-canvas" class="ambient-canvas" aria-hidden="true"></canvas>
-    <div class="scanlines" aria-hidden="true"></div>
-    <div class="crt-vignette" aria-hidden="true"></div>
+    <a class="skip-link" href="#projects">Skip to projects</a>
 
-    <main class="page">
-      <div class="mobile-panel-switch" role="group" aria-label="Section view switcher">
-        <button
-          type="button"
-          class="panel-switch-btn is-active"
-          id="panel-switch-profile"
-          data-panel-target="profile"
-          aria-pressed="true"
-        >
-          Profile
-        </button>
-        <button
-          type="button"
-          class="panel-switch-btn"
-          id="panel-switch-projects"
-          data-panel-target="projects"
-          aria-pressed="false"
-        >
-          Projects
-        </button>
-      </div>
-      <div class="layout-shell">
-        <aside class="left-column" data-panel-id="profile">
-          <section class="hero">
-            <div class="photo-wrap reveal">
-              <img src="pfp.jpg" alt="Shaan profile picture" class="photo" />
-            </div>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Shaan home">Shaan</a>
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#links">Links</a>
+      </nav>
+    </header>
 
-            <div class="hero-copy reveal">
-              <h1>Shaan</h1>
-            </div>
-          </section>
+    <main id="top" class="page-shell">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Web developer</p>
+          <h1 id="hero-title">Building clean websites and practical web tools.</h1>
+          <p class="hero-text">
+            I work with HTML, CSS, and JavaScript to make fast, simple, and useful web projects.
+            This site collects my public code, profiles, and current project activity.
+          </p>
+          <div class="hero-actions" aria-label="Primary links">
+            <a class="button primary" href="https://github.com/newbbd" target="_blank" rel="noreferrer">
+              View GitHub
+            </a>
+            <a class="button secondary" href="#projects">See projects</a>
+          </div>
+        </div>
 
-          <section class="stats reveal">
-            <div class="stat">
-              <p id="stat-repos" class="stat-value">--</p>
-              <p class="stat-label">Repos</p>
-            </div>
-            <div class="stat">
-              <p id="stat-followers" class="stat-value">--</p>
-              <p class="stat-label">Followers</p>
-            </div>
-            <div class="stat">
-              <p id="stat-stars" class="stat-value">--</p>
-              <p class="stat-label">Total Stars</p>
-            </div>
-          </section>
-
-          <section id="links" class="socials reveal">
-            <h2>Find Me Online</h2>
-            <div class="social-grid">
-              <a
-                class="social-card"
-                href="https://github.com/newbbd"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <img
-                  src="https://cdn.simpleicons.org/github/ffffff"
-                  alt="GitHub logo"
-                  class="social-logo"
-                />
-                <div>
-                  <p class="social-name">GitHub</p>
-                  <p class="social-meta">@newbbd</p>
-                </div>
-              </a>
-
-              <a
-                class="social-card"
-                href="https://www.roblox.com/users/4607785415/profile"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <img
-                  src="https://cdn.simpleicons.org/roblox/ffffff"
-                  alt="Roblox logo"
-                  class="social-logo"
-                />
-                <div>
-                  <p class="social-name">Roblox</p>
-                  <p class="social-meta">Profile</p>
-                </div>
-              </a>
-
-              <a
-                class="social-card"
-                href="https://steamcommunity.com/profiles/76561198763811803/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <img
-                  src="https://cdn.simpleicons.org/steam/ffffff"
-                  alt="Steam logo"
-                  class="social-logo"
-                />
-                <div>
-                  <p class="social-name">Steam</p>
-                  <p class="social-meta">super.ark81</p>
-                </div>
-              </a>
-
-              <a
-                class="social-card"
-                href="https://www.xbox.com/en-US/play/user/brreezii"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/f/f9/Xbox_one_logo.svg"
-                  alt="Xbox logo"
-                  class="social-logo xbox-logo"
-                />
-                <div>
-                  <p class="social-name">Xbox</p>
-                  <p class="social-meta">brreezii</p>
-                </div>
-              </a>
-
-              <div class="social-card discord-card" aria-live="polite">
-                <img
-                  src="https://cdn.simpleicons.org/discord/ffffff"
-                  alt="Discord logo"
-                  class="social-logo"
-                />
-                <div>
-                  <p class="social-name">Discord</p>
-                  <p class="social-meta">@sh44nz</p>
-                  <p class="discord-live">
-                    <span id="discord-indicator" class="status-dot"></span>
-                    <span id="discord-status">Loading status...</span>
-                  </p>
-                  <p id="discord-activity" class="discord-activity">Checking Lanyard...</p>
-                </div>
-              </div>
-            </div>
-          </section>
+        <aside class="profile-card" aria-label="Profile summary">
+          <img src="pfp.jpg" alt="Shaan profile picture" class="profile-photo" />
+          <div>
+            <h2>Shaan</h2>
+            <p class="profile-role">Developer profile and project hub</p>
+          </div>
         </aside>
+      </section>
 
-        <section id="repos" class="repos right-column reveal" data-panel-id="projects">
-          <div class="repos-header">
-            <h2>Projects</h2>
-            <div class="repo-controls" aria-label="Repo pages">
-              <button id="repo-prev" class="repo-nav" type="button" aria-label="Previous repos page">
-                Prev
-              </button>
-              <p id="repo-page-indicator" class="repo-page-indicator">1 / 1</p>
-              <button id="repo-next" class="repo-nav" type="button" aria-label="Next repos page">
-                Next
-              </button>
-            </div>
+      <section id="about" class="section two-column-section" aria-labelledby="about-title">
+        <div>
+          <p class="section-label">About</p>
+          <h2 id="about-title">Focused on simple, reliable builds.</h2>
+        </div>
+        <div class="about-grid">
+          <article class="info-card">
+            <h3>Front-end</h3>
+            <p>Responsive layouts, clean interfaces, and static sites that stay lightweight.</p>
+          </article>
+          <article class="info-card">
+            <h3>JavaScript</h3>
+            <p>Small scripts, API integrations, and browser-based tools without heavy frameworks.</p>
+          </article>
+          <article class="info-card">
+            <h3>Project work</h3>
+            <p>Experiments, utilities, and public repositories that show what I am building.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section stats-section" aria-label="GitHub stats">
+        <div class="stat">
+          <span id="stat-repos" class="stat-value">--</span>
+          <span class="stat-label">Repositories</span>
+        </div>
+        <div class="stat">
+          <span id="stat-followers" class="stat-value">--</span>
+          <span class="stat-label">Followers</span>
+        </div>
+        <div class="stat">
+          <span id="stat-stars" class="stat-value">--</span>
+          <span class="stat-label">Total stars</span>
+        </div>
+      </section>
+
+      <section id="projects" class="section" aria-labelledby="projects-title">
+        <div class="section-header">
+          <div>
+            <p class="section-label">Projects</p>
+            <h2 id="projects-title">Recent GitHub work</h2>
           </div>
-          <div id="repo-grid" class="repo-grid" aria-live="polite">
-            <p class="repo-state">Loading repositories...</p>
+          <a class="text-link" href="https://github.com/newbbd?tab=repositories" target="_blank" rel="noreferrer">
+            View all repositories
+          </a>
+        </div>
+        <div id="repo-grid" class="repo-grid" aria-live="polite">
+          <p class="state-message">Loading repositories...</p>
+        </div>
+      </section>
+
+      <section id="links" class="section links-section" aria-labelledby="links-title">
+        <div>
+          <p class="section-label">Links</p>
+          <h2 id="links-title">Find me online</h2>
+        </div>
+
+        <div class="link-grid">
+          <a class="link-card" href="https://github.com/newbbd" target="_blank" rel="noreferrer">
+            <span>GitHub</span>
+            <strong>@newbbd</strong>
+          </a>
+
+          <div class="link-card discord-card" aria-live="polite">
+            <span>Discord</span>
+            <strong>@sh44nz</strong>
+            <small>
+              <span id="discord-indicator" class="status-dot" aria-hidden="true"></span>
+              <span id="discord-status">Checking status...</span>
+            </small>
+            <small id="discord-activity">No activity loaded yet.</small>
           </div>
-        </section>
-      </div>
+
+          <a class="link-card" href="https://www.roblox.com/users/4607785415/profile" target="_blank" rel="noreferrer">
+            <span>Roblox</span>
+            <strong>Profile</strong>
+          </a>
+
+          <a class="link-card" href="https://steamcommunity.com/profiles/76561198763811803/" target="_blank" rel="noreferrer">
+            <span>Steam</span>
+            <strong>super.ark81</strong>
+          </a>
+
+          <a class="link-card" href="https://www.xbox.com/en-US/play/user/brreezii" target="_blank" rel="noreferrer">
+            <span>Xbox</span>
+            <strong>brreezii</strong>
+          </a>
+        </div>
+      </section>
     </main>
+
+    <footer class="site-footer">
+      <p>Built with plain HTML, CSS, and JavaScript.</p>
+    </footer>
 
     <script src="script.js" defer></script>
   </body>
