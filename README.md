@@ -1,38 +1,32 @@
 # Personal Website
 
-A lightweight personal portfolio and project hub for Shaan.
+A dark social profile page for Shaan.
 
 Live site: [https://newbbd.github.io/Personal-website/](https://newbbd.github.io/Personal-website/)
 
 ## Overview
 
-This site is built to be fast, simple, and easy to maintain. It uses plain HTML, CSS, and JavaScript with no framework or build step.
+This is a simple profile landing page for social links. It uses plain HTML and CSS, runs on GitHub Pages, and has a click-to-enter profile screen.
 
 ## Features
 
-- Responsive portfolio layout
-- GitHub profile stats
-- Recent repository cards
-- Discord status through Lanyard
-- Social profile links
-- Accessible navigation and semantic page structure
+- Click-to-enter intro screen
+- Centered profile card
+- Blurred background using the profile image
+- Social link buttons
+- Mobile-friendly layout
+- GitHub Pages deployment through GitHub Actions
 
 ## Tech Stack
 
 - HTML
 - CSS
-- Vanilla JavaScript
-- GitHub API
-- Lanyard API
 - GitHub Pages
+- GitHub Actions
 
 ## Project Structure
 
-- `index.html`: Page markup and content
-- `styles.css`: Layout, visual system, and responsive styles
-- `script.js`: GitHub data, repository cards, and Discord status
+- `index.html`: Profile content and links
+- `styles.css`: Visual design and responsive styling
 - `pfp.jpg`: Profile image and favicon
-
-## Notes
-
-The site intentionally avoids heavy effects and external dependencies. The goal is a clean developer profile that loads quickly and stays easy to edit.
+- `.github/workflows/pages.yml`: Automatic GitHub Pages deployment
